@@ -1,23 +1,33 @@
-node {
-    // Mark the code checkout 'stage'....
-    stage 'Checkout'
-    // Get some code from a GitHub repository
-    checkout scm
-    // Note: if this is copy and pasted into pipeline script, the following will work while the above handles branches and such
-    // git url: 'https://github.com/saucelabs-sample-test-frameworks/Java-TestNG-Selenium.git'
-
-    docker.image('maven:3.3.9-jdk-7').inside {
-        stage 'Compile'
-        sh "mvn compile"
-        stage 'Test'
-        sauce('saucelabs') {
-            sauceconnect(useGeneratedTunnelIdentifier: true, verboseLogging: true) {
-                sh "mvn test"
-            }
-        }
+node{
+    stage ('Git Checkout'){
+  git'https://github.com/tejasrik/maven-project.git'
+  
     }
-
-    stage 'Collect Results'
-    step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
-    step([$class: 'SauceOnDemandTestPublisher'])
+    
+    stage('Compile-Package'){
+      // Get maven home path
+     //def mvnHome =  tool name: 'maven3.6.3', type: 'maven' 
+     //batlabel "${mvnHome}/bin/mvn package"
+  // bat "${mvnHome}/bin/mvn clean package"
+ // bat label: '', script: "${mvnHome}/bin/mvn clean package"
+ bat label: '', script: 'mvn clean package'
+    }
+   
+   stage('SonarQube Analysis') {
+       withSonarQubeEnv() { // You can override the credential to be used
+bat label: '', script: 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.6.0.1398:sonar'
+}
+    stage('publish docker'){
+    bat label: '', script: 'docker build -t tejasrik/jenkinspipeline .'
+    bat label:'',script:'docker login -u tejasrik -p Tejasri@6523'
+    bat label:'',script:'docker push tejasrik/jenkinspipeline'
+    bat label:'',script:'docker run -d tejasrik/jenkinspipeline'
+    }
+    
+    
+        
+   }
+    
+  
+  
 }
